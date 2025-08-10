@@ -5,9 +5,9 @@ OrpheusDL - Qobuz
 
 A Qobuz module for the OrpheusDL modular archival music program
 
-[Report Bug](https://github.com/yarrm80s/orpheusdl/issues)
+[Report Bug](https://github.com/OrfiTeam/OrpheusDL/issues)
 ·
-[Request Feature](https://github.com/yarrm80s/orpheusdl/issues)
+[Request Feature](https://github.com/OrfiTeam/OrpheusDL/issues)
 
 
 ## Table of content
@@ -28,6 +28,13 @@ A Qobuz module for the OrpheusDL modular archival music program
 
 OrpheusDL - Qobuz is a module written in Python which allows archiving from **Qobuz** for the modular music archival program.
 
+### Fork Features
+
+This fork version supports the following additional features:
+
+* **Alternative Authentication**: The `username` and `password` fields can be filled with `user_id` and `user_auth_token` respectively, providing the same login functionality as traditional email/password authentication
+* **MD5 Calculation**: Automatically calculates MD5 checksums for downloaded audio files after download completion
+
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -42,7 +49,7 @@ Follow these steps to get a local copy of Orpheus up and running:
 
 1. Clone the repo inside the folder `orpheusdl/modules/`
    ```sh
-   git clone https://github.com/yarrm80s/orpheusdl-qobuz.git qobuz
+   git clone https://github.com/KyokoMiki/orpheusdl-qobuz.git qobuz
    ```
 2. Execute:
    ```sh
@@ -118,9 +125,9 @@ loaded module. You'll find the configuration file here: `config/settings.json`
 **NOTE: Set the `"quality_format": ""` to remove the quality string even if `{quality}` is present in `album_format`. 
 Square brackets `[]` will always be added before and after the `quality_format` in the album path.**
 
-`username`: Enter your qobuz email address here
+`username`: Enter your qobuz email address here, or alternatively your `user_id` for token-based authentication
 
-`password`: Enter your qobuz password here
+`password`: Enter your qobuz password here, or alternatively your `user_auth_token` for token-based authentication
 
 <!-- Contact -->
 ## Contact
@@ -129,4 +136,4 @@ Yarrm80s - [@yarrm80s](https://github.com/yarrm80s)
 
 Dniel97 - [@Dniel97](https://github.com/Dniel97)
 
-Project Link: [OrpheusDL Qobuz Public GitHub Repository](https://github.com/yarrm80s/orpheusdl-qobuz)
+Project Link: [OrpheusDL Qobuz Public GitHub Repository](https://github.com/KyokoMiki/orpheusdl-qobuz)

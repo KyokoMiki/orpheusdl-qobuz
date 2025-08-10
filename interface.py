@@ -1,9 +1,28 @@
 import unicodedata
-import re
-from datetime import datetime
-from urllib.parse import urlparse
+import ffmpeg
+from hashlib import md5
+from mutagen.flac import FLAC
+from datetime import datetime, timezone
 
-from utils.models import *
+from utils.models import (
+    ModuleInformation,
+    ModuleModes,
+    DownloadTypeEnum,
+    QualityEnum,
+    CodecOptions,
+    Tags,
+    TrackInfo,
+    CodecEnum,
+    DownloadEnum,
+    TrackDownloadInfo,
+    AlbumInfo,
+    PlaylistInfo,
+    ArtistInfo,
+    CreditsInfo,
+    SearchResult,
+    ModuleController,
+)
+from utils.utils import create_temp_filename, download_file
 from .qobuz_api import Qobuz
 
 
@@ -110,6 +129,12 @@ class ModuleInterface:
             else None,
             copyright=album_data.get("copyright"),
             genres=[album_data["genre"]["name"]],
+            replay_gain=track_data.get("audio_info").get("replaygain_track_gain")
+            if track_data.get("audio_info")
+            else None,
+            replay_peak=track_data.get("audio_info").get("replaygain_track_peak")
+            if track_data.get("audio_info")
+            else None,
         )
 
         stream_data = self.session.get_file_url(track_id, quality_tier)
@@ -162,7 +187,50 @@ class ModuleInterface:
         )
 
     def get_track_download(self, url):
-        return TrackDownloadInfo(download_type=DownloadEnum.URL, file_url=url)
+        download_path = create_temp_filename()
+
+        download_file(url, download_path, enable_progress_bar=True)
+
+        # Add MD5 calculation for FLAC files
+        try:
+            flac_file = FLAC(download_path)
+            if flac_file is not None and flac_file.info.md5_signature == 0:
+                # Calculate MD5 using the same method as md5.py
+                md5_hash = self._calculate_flac_md5(
+                    download_path, flac_file.info.bits_per_sample
+                )
+                flac_file.info.md5_signature = int.from_bytes(md5_hash, "big")
+                flac_file.save()
+        except Exception:
+            # If it's not a FLAC file or MD5 calculation fails, continue without MD5
+            pass
+
+        return TrackDownloadInfo(
+            download_type=DownloadEnum.TEMP_FILE_PATH, temp_file_path=download_path
+        )
+
+    def _calculate_flac_md5(self, flac_path: str, bit_depth: int) -> bytes:
+        """Calculate MD5 hash for FLAC file"""
+        CHUNK_SIZE = 512 * 1024
+        md_5 = md5()
+
+        try:
+            out, _ = (
+                ffmpeg.input(flac_path)
+                .output("pipe:", format=f"s{bit_depth}le", acodec=f"pcm_s{bit_depth}le")
+                .run(capture_stdout=True, quiet=True)
+            )
+
+            # Process the output in chunks
+            for i in range(0, len(out), CHUNK_SIZE):
+                chunk = out[i : i + CHUNK_SIZE]
+                md_5.update(chunk)
+
+        except ffmpeg.Error:
+            # If FFmpeg fails, return empty hash
+            return b""
+
+        return md_5.digest()
 
     def get_album_info(self, album_id):
         album_data = self.session.get_album(album_id)
@@ -229,8 +297,8 @@ class ModuleInterface:
             name=playlist_data["name"],
             creator=playlist_data["owner"]["name"],
             creator_id=playlist_data["owner"]["id"],
-            release_year=datetime.utcfromtimestamp(
-                playlist_data["created_at"]
+            release_year=datetime.fromtimestamp(
+                playlist_data["created_at"], tz=timezone.utc
             ).strftime("%Y"),
             description=playlist_data.get("description"),
             duration=playlist_data.get("duration"),
@@ -288,7 +356,9 @@ class ModuleInterface:
                 year = None
             elif query_type is DownloadTypeEnum.playlist:
                 artists = [i["owner"]["name"]]
-                year = datetime.utcfromtimestamp(i["created_at"]).strftime("%Y")
+                year = datetime.fromtimestamp(
+                    i["created_at"], tz=timezone.utc
+                ).strftime("%Y")
                 duration = i["duration"]
             elif query_type is DownloadTypeEnum.track:
                 artists = [i["performer"]["name"]]

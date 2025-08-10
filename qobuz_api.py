@@ -18,8 +18,9 @@ class Qobuz:
             "X-Device-Model": "Pixel 3",
             "X-Device-Os-Version": "10",
             "X-User-Auth-Token": self.auth_token if self.auth_token else None,
-            "X-Device-Manufacturer-Id": "ffffffff-5783-1f51-ffff-ffffef05ac4a",
+            "X-Device-Manufacturer-Id": "482D8CB7-015D-402F-A93B-5EEF0E0996F3",
             "X-App-Version": "5.16.1.5",
+            "X-App-Id": self.app_id,
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 10; Pixel 3 Build/QP1A.190711.020))"
             "QobuzMobileAndroid/5.16.1.5-b21041415",
         }
@@ -36,12 +37,18 @@ class Qobuz:
         return r.json()
 
     def login(self, email: str, password: str):
-        params = {
-            "username": email,
-            "password": hash_string(password, "MD5"),
-            "extra": "partner",
-            "app_id": self.app_id,
-        }
+        if "@" in email:
+            params = {
+                "username": email,
+                "password": hash_string(password, "MD5"),
+                "app_id": self.app_id,
+            }
+        else:
+            params = {
+                "user_id": email,
+                "user_auth_token": password,
+                "app_id": self.app_id,
+            }
 
         signature = self.create_signature("user/login", params)
         params["request_ts"] = signature[0]
